@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sound Mind Content Discovery</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #6ba3f5 0%, #8bb8f8 50%, #a8ccfa 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #2c3e50;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.1),
+                0 10px 20px rgba(0, 0, 0, 0.05),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #6ba3f5, #8bb8f8, #a8ccfa);
+            opacity: 0.6;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .title {
+            font-size: 2.5em;
+            font-weight: 300;
+            color: #34495e;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            color: #7f8c8d;
+            font-weight: 400;
+        }
+
+        .search-section {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 
+                0 8px 25px rgba(0, 0, 0, 0.08),
+                inset 0 1px 0 rgba(255, 255, 255, 0.5);
+        }
+
+        .search-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .search-button {
+            background: linear-gradient(135deg, #6ba3f5, #5a9bf4);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 12px;
+            font-size: 1em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 
+                0 6px 20px rgba(107, 163, 245, 0.3),
+                0 2px 5px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .search-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .search-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 8px 25px rgba(107, 163, 245, 0.4),
+                0 4px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        .search-button:hover::before {
+            left: 100%;
+        }
+
+        .search-button:active {
+            transform: translateY(0);
+        }
+
+        .search-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .custom-search {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 2px solid rgba(107, 163, 245, 0.2);
+            border-radius: 10px;
+            font-size: 0.95em;
+            background: rgba(255, 255, 255, 0.9);
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .search-input:focus {
+            border-color: #6ba3f5;
+            box-shadow: 0 0 0 3px rgba(107, 163, 245, 0.1);
+            background: white;
+        }
+
+        .add-term-button {
+            background: rgba(107, 163, 245, 0.1);
+            color: #6ba3f5;
+            border: 2px solid rgba(107, 163, 245, 0.3);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .add-term-button:hover {
+            background: rgba(107, 163, 245, 0.2);
+            border-color: #6ba3f5;
+        }
+
+        .current-terms {
+            margin-top: 15px;
+        }
+
+        .term-tag {
+            display: inline-block;
+            background: linear-gradient(135deg, #6ba3f5, #8bb8f8);
+            color: white;
+            padding: 6px 12px;
+            margin: 3px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(107, 163, 245, 0.3);
+        }
+
+        .remove-term {
+            margin-left: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .remove-term:hover {
+            opacity: 1;
+        }
+
+        .results-section {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 
+                0 8px 25px rgba(0, 0, 0, 0.08),
+                inset 0 1px 0 rgba(255, 255, 255, 0.5);
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(107, 163, 245, 0.1);
+        }
+
+        .results-title {
+            font-size: 1.3em;
+            font-weight: 500;
+            color: #34495e;
+        }
+
+        .export-button {
+            background: linear-gradient(135deg, #52c41a, #73d13d);
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(82, 196, 26, 0.3);
+        }
+
+        .export-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(82, 196, 26, 0.4);
+        }
+
+        .content-item {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 
+                0 4px 15px rgba(0, 0, 0, 0.08),
+                0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            border-left: 4px solid transparent;
+        }
+
+        .content-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 8px 25px rgba(0, 0, 0, 0.12),
+                0 4px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .content-item.news {
+            border-left-color: #ff6b6b;
+        }
+
+        .content-item.reddit {
+            border-left-color: #ff9500;
+        }
+
+        .content-item.research {
+            border-left-color: #4ecdc4;
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .item-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #2c3e50;
+            line-height: 1.4;
+            flex: 1;
+            margin-right: 15px;
+        }
+
+        .remove-item {
+            background: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .remove-item:hover {
+            background: #e74c3c;
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .item-source {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .source-news {
+            background: rgba(255, 107, 107, 0.1);
+            color: #ff6b6b;
+        }
+
+        .source-reddit {
+            background: rgba(255, 149, 0, 0.1);
+            color: #ff9500;
+        }
+
+        .source-research {
+            background: rgba(78, 205, 196, 0.1);
+            color: #4ecdc4;
+        }
+
+        .item-snippet {
+            color: #555;
+            line-height: 1.5;
+            margin-bottom: 12px;
+            font-size: 0.95em;
+        }
+
+        .item-link {
+            color: #6ba3f5;
+            text-decoration: none;
+            font-size: 0.9em;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .item-link:hover {
+            color: #5a9bf4;
+            text-decoration: underline;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(107, 163, 245, 0.2);
+            border-top: 3px solid #6ba3f5;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7f8c8d;
+        }
+
+        .empty-state-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .status-message {
+            background: rgba(107, 163, 245, 0.1);
+            border: 1px solid rgba(107, 163, 245, 0.2);
+            color: #6ba3f5;
+            padding: 12px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 0.95em;
+        }
+
+        @media (max-width: 768px) {
+            .search-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .custom-search {
+                min-width: auto;
+            }
+            
+            .results-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">🎵 Sound Mind</h1>
+            <p class="subtitle">Content Discovery Agent</p>
+        </div>
+
+        <div class="search-section">
+            <div class="search-controls">
+                <button class="search-button" id="searchBtn">
+                    <span id="searchBtnText">🔍 Search Content</span>
+                </button>
+                
+                <div class="custom-search">
+                    <input type="text" class="search-input" id="customTerm" placeholder="Add custom search term...">
+                    <button class="add-term-button" id="addTermBtn">+ Add</button>
+                </div>
+            </div>
+            
+            <div class="current-terms">
+                <strong>Search Terms:</strong>
+                <div id="termTags"></div>
+            </div>
+        </div>
+
+        <div class="results-section">
+            <div class="results-header">
+                <h2 class="results-title">Content Results</h2>
+                <button class="export-button" id="exportBtn" style="display: none;">📄 Export Results</button>
+            </div>
+            
+            <div id="statusMessage"></div>
+            <div id="resultsContainer">
+                <div class="empty-state">
+                    <div class="empty-state-icon">🎶</div>
+                    <h3>Ready to Discover</h3>
+                    <p>Click "Search Content" to find the latest sound healing insights across news, research, and community discussions.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Application state
+        let searchTerms = ['sound healing', 'binaural beats', 'meditation music'];
+        let allResults = [];
+        let displayedResults = [];
+        let isSearching = false;
+
+        // DOM elements
+        const searchBtn = document.getElementById('searchBtn');
+        const searchBtnText = document.getElementById('searchBtnText');
+        const customTermInput = document.getElementById('customTerm');
+        const addTermBtn = document.getElementById('addTermBtn');
+        const termTagsContainer = document.getElementById('termTags');
+        const statusMessage = document.getElementById('statusMessage');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const exportBtn = document.getElementById('exportBtn');
+
+        // Initialize the app
+        function init() {
+            updateTermTags();
+            setupEventListeners();
+        }
+
+        function setupEventListeners() {
+            searchBtn.addEventListener('click', performSearch);
+            addTermBtn.addEventListener('click', addCustomTerm);
+            customTermInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') addCustomTerm();
+            });
+            exportBtn.addEventListener('click', exportResults);
+        }
+
+        function updateTermTags() {
+            termTagsContainer.innerHTML = searchTerms.map(term => 
+                `<span class="term-tag">${term}<span class="remove-term" onclick="removeTerm('${term}')">&times;</span></span>`
+            ).join('');
+        }
+
+        function addCustomTerm() {
+            const term = customTermInput.value.trim();
+            if (term && !searchTerms.includes(term)) {
+                searchTerms.push(term);
+                customTermInput.value = '';
+                updateTermTags();
+            }
+        }
+
+        function removeTerm(term) {
+            searchTerms = searchTerms.filter(t => t !== term);
+            updateTermTags();
+        }
+
+        function showStatus(message) {
+            statusMessage.innerHTML = `<div class="status-message">${message}</div>`;
+        }
+
+        function hideStatus() {
+            statusMessage.innerHTML = '';
+        }
+
+        function showLoading() {
+            resultsContainer.innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Discovering content across multiple sources...</p>
+                </div>
+            `;
+        }
+
+        async function performSearch() {
+            if (isSearching) return;
+            
+            isSearching = true;
+            searchBtn.disabled = true;
+            searchBtnText.textContent = '🔍 Searching...';
+            
+            showLoading();
+            hideStatus();
+
+            try {
+                // Simulate API calls with realistic delays
+                allResults = [];
+                
+                for (const term of searchTerms) {
+                    showStatus(`Searching for "${term}"...`);
+                    
+                    // Simulate news search
+                    await delay(800);
+                    const newsResults = await mockNewsSearch(term);
+                    allResults.push(...newsResults);
+                    
+                    // Simulate Reddit search
+                    await delay(600);
+                    const redditResults = await mockRedditSearch(term);
+                    allResults.push(...redditResults);
+                    
+                    // Simulate research search
+                    await delay(700);
+                    const researchResults = await mockResearchSearch(term);
+                    allResults.push(...researchResults);
+                }
+
+                // Shuffle and select top 5 for display
+                allResults = shuffleArray(allResults);
+                displayedResults = allResults.slice(0, 5);
+                
+                hideStatus();
+                displayResults();
+                exportBtn.style.display = 'block';
+                
+            } catch (error) {
+                showStatus('❌ Search failed. Please try again.');
+                console.error('Search error:', error);
+            } finally {
+                isSearching = false;
+                searchBtn.disabled = false;
+                searchBtnText.textContent = '🔍 Search Content';
+            }
+        }
+
+        function displayResults() {
+            if (displayedResults.length === 0) {
+                resultsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">😔</div>
+                        <h3>No Results Found</h3>
+                        <p>Try adjusting your search terms or search again later.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            resultsContainer.innerHTML = displayedResults.map((item, index) => `
+                <div class="content-item ${item.type}">
+                    <div class="item-header">
+                        <h3 class="item-title">${item.title}</h3>
+                        <button class="remove-item" onclick="removeItem(${index})">&times;</button>
+                    </div>
+                    <div class="item-source source-${item.type}">${item.source}</div>
+                    <p class="item-snippet">${item.snippet}</p>
+                    <a href="${item.url}" target="_blank" class="item-link">🔗 Read More</a>
+                </div>
+            `).join('');
+        }
+
+        function removeItem(index) {
+            // Remove the item from displayed results
+            displayedResults.splice(index, 1);
+            
+            // Find a replacement from remaining results
+            const remainingResults = allResults.filter(result => 
+                !displayedResults.some(displayed => displayed.url === result.url)
+            );
+            
+            if (remainingResults.length > 0) {
+                const replacement = remainingResults[0];
+                displayedResults.push(replacement);
+            }
+            
+            displayResults();
+        }
+
+        function exportResults() {
+            const content = displayedResults.map(item => 
+                `Title: ${item.title}\nSource: ${item.source}\nSnippet: ${item.snippet}\nURL: ${item.url}\n\n`
+            ).join('---\n\n');
+            
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `sound-mind-content-${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Mock API functions (these would connect to your real APIs in production)
+        async function mockNewsSearch(term) {
+            const mockNews = [
+                {
+                    title: `New Research: ${term} Shows Promise in Clinical Settings`,
+                    source: 'News: Medical Daily',
+                    snippet: `Recent clinical trials demonstrate significant benefits of ${term} for stress reduction and mental wellness. Researchers found measurable improvements in participants' anxiety levels.`,
+                    url: 'https://example.com/news1',
+                    type: 'news'
+                },
+                {
+                    title: `Breakthrough Study Links ${term} to Improved Sleep Quality`,
+                    source: 'News: Health Science Today',
+                    snippet: `A groundbreaking study reveals how ${term} therapy can significantly improve sleep patterns and reduce insomnia symptoms in adults.`,
+                    url: 'https://example.com/news2',
+                    type: 'news'
+                }
+            ];
+            return mockNews.slice(0, Math.floor(Math.random() * 3) + 1);
+        }
+
+        async function mockRedditSearch(term) {
+            const mockReddit = [
+                {
+                    title: `Personal experience with ${term} - life changing results`,
+                    source: 'Reddit: r/Meditation',
+                    snippet: `After 6 months of regular ${term} practice, I've noticed incredible changes in my stress levels and overall mental clarity. Here's my detailed journey...`,
+                    url: 'https://reddit.com/example1',
+                    type: 'reddit'
+                },
+                {
+                    title: `Scientific discussion: How does ${term} actually work?`,
+                    source: 'Reddit: r/SoundHealing',
+                    snippet: `Fascinating discussion thread exploring the neuroscience behind ${term} and its effects on brainwave patterns. Community sharing research papers and personal insights.`,
+                    url: 'https://reddit.com/example2',
+                    type: 'reddit'
+                }
+            ];
+            return mockReddit.slice(0, Math.floor(Math.random() * 3) + 1);
+        }
+
+        async function mockResearchSearch(term) {
+            const mockResearch = [
+                {
+                    title: `Clinical efficacy of ${term} in anxiety disorder treatment: A randomized controlled trial`,
+                    source: 'Research: Journal of Alternative Medicine',
+                    snippet: `This double-blind study (n=120) examines the therapeutic potential of ${term} as an adjunct treatment for generalized anxiety disorder.`,
+                    url: 'https://pubmed.example.com/1',
+                    type: 'research'
+                },
+                {
+                    title: `Neuroimaging study reveals ${term} effects on default mode network activity`,
+                    source: 'Research: Neuroscience & Biobehavioral Reviews',
+                    snippet: `fMRI analysis showing how ${term} modulates brain connectivity patterns associated with meditation and relaxation states.`,
+                    url: 'https://pubmed.example.com/2',
+                    type: 'research'
+                }
+            ];
+            return mockResearch.slice(0, Math.floor(Math.random() * 2) + 1);
+        }
+
+        // Utility functions
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        // Start the app
+        init();
+    </script>
+</body>
+</html>
