@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sound Mind Content Discovery</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="floating-orbs">
+        <div class="orb orb1"></div>
+        <div class="orb orb2"></div>
+        <div class="orb orb3"></div>
+    </div>
+
+    <div class="container">
+        <div class="glass-widget header-widget">
+            <h1 class="title">Sound Mind</h1>
+            <p class="subtitle">Content Discovery Agent</p>
+        </div>
+
+        <div class="glass-widget search-widget">
+            <div class="search-controls">
+                <button class="search-button" id="searchBtn">
+                    <span id="searchBtnText">🔍 Search Content</span>
+                </button>
+                
+                <div class="custom-search">
+                    <input type="text" class="search-input" id="customTerm" placeholder="Add custom search term...">
+                    <button class="add-term-button" id="addTermBtn">+ Add</button>
+                </div>
+            </div>
+            
+            <div class="current-terms">
+                <strong style="color: #5d4037; margin-bottom: 8px; display: block;">Search Terms:</strong>
+                <div id="termTags"></div>
+            </div>
+        </div>
+
+        <div class="glass-widget results-widget">
+            <div class="results-header">
+                <h2 class="results-title">Content Results</h2>
+                <button class="export-button" id="exportBtn" style="display: none;">📄 Export Results</button>
+            </div>
+            
+            <div id="statusMessage"></div>
+            <div id="resultsContainer">
+                <div class="empty-state">
+                    <div class="empty-state-icon">🌀</div>
+                    <h3>Ready to Discover</h3>
+                    <p>Click "Search Content" to find the latest sound healing insights across news, research, and community discussions.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load JavaScript at the end for better performance -->
+    <script src="script.js"></script>
+</body>
+</html>
