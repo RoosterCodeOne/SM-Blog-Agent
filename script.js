@@ -1,4 +1,4 @@
-// Sound Mind Content Discovery - JavaScript
+// Sound Mind Content Discovery - JavaScript with Real API Integration
 console.log('Sound Mind script loading...');
 
 // Global variables
@@ -6,6 +6,9 @@ let searchTerms = ['sound healing', 'binaural beats', 'meditation music'];
 let allResults = [];
 let displayedResults = [];
 let isSearching = false;
+
+// API Configuration
+const API_BASE_URL = 'http://localhost:5000/api';
 
 console.log('Initial search terms:', searchTerms);
 
@@ -90,18 +93,38 @@ function showLoading() {
         resultsContainer.innerHTML = `
             <div class="loading">
                 <div class="loading-spinner"></div>
-                <p>Discovering content across multiple sources...</p>
+                <p>Discovering real content across multiple sources...</p>
             </div>
         `;
     }
 }
 
-// Main search function
+// Test API connection
+async function testAPIConnection() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/test`);
+        const data = await response.json();
+        console.log('✅ API Connection Test:', data);
+        return true;
+    } catch (error) {
+        console.error('❌ API Connection Failed:', error);
+        showStatus('❌ Cannot connect to API server. Make sure the Python server is running on port 5000.');
+        return false;
+    }
+}
+
+// Main search function with real API
 async function performSearch() {
     console.log('performSearch called');
     
     if (isSearching) {
         console.log('Search already in progress, skipping');
+        return;
+    }
+    
+    // Test API connection first
+    const apiConnected = await testAPIConnection();
+    if (!apiConnected) {
         return;
     }
     
@@ -116,45 +139,87 @@ async function performSearch() {
     hideStatus();
 
     try {
-        allResults = [];
+        showStatus('🔍 Searching real content sources...');
         
-        for (const term of searchTerms) {
-            showStatus(`Searching for "${term}"...`);
-            
-            // Simulate news search
-            await delay(800);
-            const newsResults = await mockNewsSearch(term);
-            allResults.push(...newsResults);
-            
-            // Simulate Reddit search
-            await delay(600);
-            const redditResults = await mockRedditSearch(term);
-            allResults.push(...redditResults);
-            
-            // Simulate research search
-            await delay(700);
-            const researchResults = await mockResearchSearch(term);
-            allResults.push(...researchResults);
+        // Call the real API
+        const response = await fetch(`${API_BASE_URL}/search`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                searchTerms: searchTerms
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`API request failed: ${response.status}`);
         }
-
-        // Shuffle and select top 5 for display
-        allResults = shuffleArray(allResults);
-        displayedResults = allResults.slice(0, 5);
         
-        hideStatus();
-        displayResults();
+        const data = await response.json();
         
-        const exportBtn = document.getElementById('exportBtn');
-        if (exportBtn) exportBtn.style.display = 'block';
+        if (data.success) {
+            allResults = data.results;
+            
+            // Add snippet property if missing (for consistent display)
+            allResults = allResults.map(result => ({
+                ...result,
+                snippet: result.snippet || `Content from ${result.source} about the search topic.`
+            }));
+            
+            // Shuffle and select top 5 for display
+            allResults = shuffleArray(allResults);
+            displayedResults = allResults.slice(0, 5);
+            
+            hideStatus();
+            displayResults();
+            
+            const exportBtn = document.getElementById('exportBtn');
+            if (exportBtn) exportBtn.style.display = 'block';
+            
+            console.log(`✅ Found ${allResults.length} real results!`);
+        } else {
+            throw new Error(data.error || 'Unknown API error');
+        }
         
     } catch (error) {
-        showStatus('❌ Search failed. Please try again.');
+        showStatus(`❌ Search failed: ${error.message}`);
         console.error('Search error:', error);
+        
+        // Fallback to mock data if API fails
+        console.log('🔄 Falling back to mock data...');
+        await performMockSearch();
     } finally {
         isSearching = false;
         if (searchBtn) searchBtn.disabled = false;
         if (searchBtnText) searchBtnText.textContent = '🔍 Search Content';
     }
+}
+
+// Fallback mock search (simplified version)
+async function performMockSearch() {
+    allResults = [
+        {
+            title: 'Sound Healing Benefits for Mental Health',
+            source: 'Demo: Health News',
+            snippet: 'Recent studies show promising results for sound therapy in treating anxiety and depression.',
+            url: 'https://www.healthline.com/health/sound-therapy',
+            type: 'news'
+        },
+        {
+            title: 'My Journey with Binaural Beats',
+            source: 'Demo: Reddit Discussion',
+            snippet: 'Personal experience using binaural beats for focus and relaxation over 6 months.',
+            url: 'https://www.reddit.com/r/Meditation/',
+            type: 'reddit'
+        }
+    ];
+    
+    displayedResults = allResults;
+    displayResults();
+    
+    const exportBtn = document.getElementById('exportBtn');
+    if (exportBtn) exportBtn.style.display = 'block';
 }
 
 // Function to display search results
@@ -167,7 +232,7 @@ function displayResults() {
             <div class="empty-state">
                 <div class="empty-state-icon">🌀</div>
                 <h3>No Results Found</h3>
-                <p>Try adjusting your search terms or search again later.</p>
+                <p>Try adjusting your search terms or check your API connection.</p>
             </div>
         `;
         return;
@@ -181,14 +246,9 @@ function displayResults() {
             </div>
             <div class="item-source source-${item.type}">${item.source}</div>
             <p class="item-snippet">${item.snippet}</p>
-            <a href="#" onclick="handleLinkClick('${item.type}', '${item.title.replace(/'/g, "\\'")}')" class="item-link">🔗 Read More</a>
+            <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="item-link">🔗 Read More</a>
         </div>
     `).join('');
-}
-
-// Handle clicking on result links (mock)
-function handleLinkClick(type, title) {
-    alert(`This is a mock result. In the real version, this would link to:\n\n${title}\n\nType: ${type} content`);
 }
 
 // Remove a result item and replace with next available
@@ -210,7 +270,7 @@ function removeItem(index) {
 // Export results to text file
 function exportResults() {
     const content = displayedResults.map(item => 
-        `Title: ${item.title}\nSource: ${item.source}\nSnippet: ${item.snippet}\nType: ${item.type}\n\n`
+        `Title: ${item.title}\nSource: ${item.source}\nSnippet: ${item.snippet}\nType: ${item.type}\nURL: ${item.url}\n\n`
     ).join('---\n\n');
     
     const blob = new Blob([content], { type: 'text/plain' });
@@ -222,88 +282,6 @@ function exportResults() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-}
-
-// Mock API functions (these will be replaced with real API calls later)
-async function mockNewsSearch(term) {
-    const mockNews = [
-        {
-            title: `Revolutionary Study: ${term} Shows 85% Improvement in Sleep Quality`,
-            source: 'News: Sleep Medicine Journal',
-            snippet: `Groundbreaking research reveals that regular ${term} practice leads to significant improvements in sleep patterns, with participants reporting deeper, more restorative sleep within just two weeks of starting therapy.`,
-            url: '#mock-news-link',
-            type: 'news'
-        },
-        {
-            title: `Breaking: Major Hospital Adopts ${term} for Patient Recovery`,
-            source: 'News: Medical Innovation Today',
-            snippet: `Massachusetts General Hospital becomes the first major medical center to integrate ${term} therapy into their standard patient care protocols, citing remarkable recovery improvements.`,
-            url: '#mock-news-link',
-            type: 'news'
-        },
-        {
-            title: `${term} Industry Sees 300% Growth in Consumer Demand`,
-            source: 'News: Wellness Business Weekly',
-            snippet: `Market analysis shows unprecedented growth in ${term} services and products as consumers increasingly seek natural wellness solutions. Industry experts predict continued expansion through 2025.`,
-            url: '#mock-news-link',
-            type: 'news'
-        }
-    ];
-    return mockNews.slice(0, Math.floor(Math.random() * 3) + 1);
-}
-
-async function mockRedditSearch(term) {
-    const mockReddit = [
-        {
-            title: `6-month ${term} journey - my anxiety is completely gone (detailed post)`,
-            source: 'Reddit: r/SoundHealing',
-            snippet: `I started my ${term} practice 6 months ago as a last resort for severe anxiety. The transformation has been incredible - I no longer need medication and feel more centered than ever. Here's my complete routine and the specific techniques that worked...`,
-            url: '#mock-reddit-link',
-            type: 'reddit'
-        },
-        {
-            title: `Scientists of Reddit: Can someone explain the actual mechanism behind ${term}?`,
-            source: 'Reddit: r/AskScience',
-            snippet: `Fascinating scientific discussion exploring exactly how ${term} affects our nervous system and brain chemistry. Top-voted responses from neuroscientists and sound therapists with peer-reviewed sources.`,
-            url: '#mock-reddit-link',
-            type: 'reddit'
-        },
-        {
-            title: `DIY ${term} setup that changed my meditation practice forever`,
-            source: 'Reddit: r/Meditation',
-            snippet: `After years of struggling with traditional meditation, I discovered ${term} and built my own setup for under $100. The difference in my ability to reach deep meditative states is remarkable. Full equipment list and instructions included.`,
-            url: '#mock-reddit-link',
-            type: 'reddit'
-        }
-    ];
-    return mockReddit.slice(0, Math.floor(Math.random() * 3) + 1);
-}
-
-async function mockResearchSearch(term) {
-    const mockResearch = [
-        {
-            title: `Neuroplasticity changes induced by ${term}: A longitudinal fMRI study (n=240)`,
-            source: 'Research: Nature Neuroscience',
-            snippet: `This comprehensive neuroimaging study demonstrates measurable structural brain changes following 8 weeks of ${term} therapy. Participants showed increased gray matter density in regions associated with emotional regulation and stress response.`,
-            url: '#mock-research-link',
-            type: 'research'
-        },
-        {
-            title: `Clinical efficacy of ${term} in treating chronic pain: Randomized controlled trial`,
-            source: 'Research: Journal of Pain Management',
-            snippet: `Double-blind RCT (n=180) comparing ${term} therapy to standard treatment for chronic pain conditions. Results show significant pain reduction and improved quality of life measures in the treatment group.`,
-            url: '#mock-research-link',
-            type: 'research'
-        },
-        {
-            title: `Biomarker analysis of stress hormones following ${term} intervention`,
-            source: 'Research: Psychoneuroendocrinology',
-            snippet: `Laboratory analysis reveals significant decreases in cortisol and inflammatory markers following ${term} sessions. This study provides biological evidence for the stress-reducing effects previously observed in behavioral assessments.`,
-            url: '#mock-research-link',
-            type: 'research'
-        }
-    ];
-    return mockResearch.slice(0, Math.floor(Math.random() * 2) + 1);
 }
 
 // Utility functions
@@ -326,6 +304,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize search terms display
     updateTermTags();
+    
+    // Test API connection on startup
+    setTimeout(testAPIConnection, 1000);
     
     // Set up event listeners
     const searchBtn = document.getElementById('searchBtn');

@@ -2,7 +2,13 @@ import json
 import urllib.request
 import urllib.parse
 import base64
+import ssl
 from datetime import datetime
+
+# Create SSL context that doesn't verify certificates (for development)
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
 
 def load_env_file():
     """Load variables from .env file"""
@@ -19,10 +25,12 @@ def load_env_file():
 
 def search_news(topic):
     """Search NewsAPI for articles"""
+    print(f"📰 Searching NewsAPI for: {topic}")
     env_vars = load_env_file()
     api_key = env_vars.get('NEWS_API_KEY')
     
     if not api_key:
+        print("❌ No NewsAPI key found!")
         return []
     
     base_url = "https://newsapi.org/v2/everything"
@@ -36,7 +44,8 @@ def search_news(topic):
     url = base_url + '?' + urllib.parse.urlencode(params)
     
     try:
-        with urllib.request.urlopen(url) as response:
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, context=ssl_context) as response:
             data = json.loads(response.read().decode())
         
         articles = []
@@ -46,19 +55,24 @@ def search_news(topic):
                 'source': f"News: {article['source']['name']}",
                 'url': article['url'],
                 'date': article['publishedAt'],
-                'type': 'news'
+                'type': 'news',
+                'snippet': article.get('description', 'No description available.')[:200] + "..."
             })
+        print(f"   ✅ Found {len(articles)} news articles")
         return articles
-    except:
+    except Exception as e:
+        print(f"   ❌ NewsAPI error: {e}")
         return []
 
 def get_reddit_token():
     """Get Reddit access token"""
+    print("🔄 Getting Reddit token...")
     env_vars = load_env_file()
     client_id = env_vars.get('REDDIT_CLIENT_ID')
     client_secret = env_vars.get('REDDIT_CLIENT_SECRET')
     
     if not client_id or not client_secret:
+        print("❌ Reddit credentials missing!")
         return None
     
     credentials = f"{client_id}:{client_secret}"
@@ -72,15 +86,19 @@ def get_reddit_token():
     req.add_header('User-Agent', 'SoundMindAgent/1.0')
     
     try:
-        with urllib.request.urlopen(req) as response:
+        with urllib.request.urlopen(req, context=ssl_context) as response:
             token_data = json.loads(response.read().decode())
+            print("   ✅ Reddit token obtained")
             return token_data.get('access_token')
-    except:
+    except Exception as e:
+        print(f"   ❌ Reddit token error: {e}")
         return None
 
 def search_reddit(topic, token):
     """Search Reddit for discussions"""
+    print(f"💬 Searching Reddit for: {topic}")
     if not token:
+        print("   ❌ No Reddit token available")
         return []
     
     subreddits = ['Meditation', 'soundhealing', 'BinauralBeats', 'ambientmusic']
@@ -102,7 +120,7 @@ def search_reddit(topic, token):
         req.add_header('User-Agent', 'SoundMindAgent/1.0')
         
         try:
-            with urllib.request.urlopen(req) as response:
+            with urllib.request.urlopen(req, context=ssl_context) as response:
                 data = json.loads(response.read().decode())
             
             for post in data.get('data', {}).get('children', []):
@@ -113,15 +131,19 @@ def search_reddit(topic, token):
                     'url': f"https://reddit.com{post_data['permalink']}",
                     'date': datetime.fromtimestamp(post_data['created_utc']).isoformat(),
                     'type': 'reddit',
-                    'score': post_data['score']
+                    'score': post_data['score'],
+                    'snippet': post_data.get('selftext', 'Reddit discussion thread')[:200] + "..."
                 })
-        except:
+        except Exception as e:
+            print(f"   ❌ Reddit search error for r/{subreddit}: {e}")
             continue
     
+    print(f"   ✅ Found {len(all_posts)} Reddit posts")
     return all_posts
 
 def search_pubmed(topic):
     """Search PubMed for research"""
+    print(f"🔬 Searching PubMed for: {topic}")
     search_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
     search_params = {
         'db': 'pubmed',
@@ -133,12 +155,14 @@ def search_pubmed(topic):
     search_full_url = search_url + '?' + urllib.parse.urlencode(search_params)
     
     try:
-        with urllib.request.urlopen(search_full_url) as response:
+        req = urllib.request.Request(search_full_url)
+        with urllib.request.urlopen(req, context=ssl_context) as response:
             search_data = json.loads(response.read().decode())
         
         id_list = search_data.get('esearchresult', {}).get('idlist', [])
         
         if not id_list:
+            print(f"   ❌ No PubMed articles found for '{topic}'")
             return []
         
         fetch_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
@@ -150,7 +174,8 @@ def search_pubmed(topic):
         
         fetch_full_url = fetch_url + '?' + urllib.parse.urlencode(fetch_params)
         
-        with urllib.request.urlopen(fetch_full_url) as response:
+        req = urllib.request.Request(fetch_full_url)
+        with urllib.request.urlopen(req, context=ssl_context) as response:
             fetch_data = json.loads(response.read().decode())
         
         articles = []
@@ -164,11 +189,14 @@ def search_pubmed(topic):
                     'source': f"Research: {article.get('source', 'PubMed')}",
                     'url': f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/",
                     'date': article.get('pubdate', 'Unknown'),
-                    'type': 'research'
+                    'type': 'research',
+                    'snippet': f"Research paper published in {article.get('source', 'academic journal')}. Click to read full abstract and details."
                 })
         
+        print(f"   ✅ Found {len(articles)} research papers")
         return articles
-    except:
+    except Exception as e:
+        print(f"   ❌ PubMed error: {e}")
         return []
 
 def run_full_content_search():
@@ -181,10 +209,6 @@ def run_full_content_search():
     
     # Get Reddit token once
     reddit_token = get_reddit_token()
-    if reddit_token:
-        print("✅ Connected to Reddit")
-    else:
-        print("❌ Reddit connection failed")
     
     all_content = []
     
@@ -197,9 +221,7 @@ def run_full_content_search():
         reddit_results = search_reddit(topic, reddit_token)
         research_results = search_pubmed(topic)
         
-        print(f"📰 News: {len(news_results)} articles")
-        print(f"💬 Reddit: {len(reddit_results)} discussions") 
-        print(f"🔬 Research: {len(research_results)} papers")
+        print(f"📊 Results for '{topic}': News={len(news_results)}, Reddit={len(reddit_results)}, Research={len(research_results)}")
         
         # Combine results
         topic_content = news_results + reddit_results + research_results
@@ -220,16 +242,18 @@ def run_full_content_search():
     print(f"🔬 Research Papers: {research_count}")
     
     # Show top items from each category
-    print(f"\n🏆 SAMPLE RESULTS:")
-    print("-" * 40)
-    
-    for content_type in ['news', 'reddit', 'research']:
-        items = [x for x in all_content if x['type'] == content_type]
-        if items:
-            print(f"\n{content_type.upper()}:")
-            for item in items[:2]:  # Show top 2
-                print(f"  • {item['title'][:60]}...")
-                print(f"    {item['source']}")
+    if all_content:
+        print(f"\n🏆 SAMPLE RESULTS:")
+        print("-" * 40)
+        
+        for content_type in ['news', 'reddit', 'research']:
+            items = [x for x in all_content if x['type'] == content_type]
+            if items:
+                print(f"\n{content_type.upper()}:")
+                for item in items[:2]:  # Show top 2
+                    print(f"  • {item['title'][:60]}...")
+                    print(f"    {item['source']}")
+                    print(f"    {item['url']}")
     
     print(f"\n✅ Your Sound Mind content discovery system is WORKING!")
     return all_content

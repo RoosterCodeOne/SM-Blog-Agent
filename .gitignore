@@ -1,5 +1,2 @@
 .env
-test_basic.py
-debug.html
-sound_mind_interface.html
-test_basic.py
+__pycache__
